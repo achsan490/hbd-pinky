@@ -12,6 +12,8 @@ interface MusicContextType {
   duration: number;
   isSynthesizerFallback: boolean;
   startMusic: () => void;
+  pauseMusic: () => void;
+  resumeMusic: () => void;
   togglePlay: () => void;
   setVolume: (val: number) => void;
   toggleMute: () => void;
@@ -109,6 +111,26 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
+  const pauseMusic = () => {
+    if (audioRef.current && !isSynthesizerFallback) {
+      audioRef.current.pause();
+    }
+    musicBox.pause();
+    setIsPlaying(false);
+  };
+
+  const resumeMusic = () => {
+    if (!userInteractedRef.current) return;
+    if (audioRef.current && !isSynthesizerFallback) {
+      audioRef.current.play().catch(() => {
+        musicBox.play();
+      });
+    } else {
+      musicBox.play();
+    }
+    setIsPlaying(true);
+  };
+
   const togglePlay = () => {
     if (!userInteractedRef.current) {
       startMusic();
@@ -116,20 +138,9 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
 
     if (isPlaying) {
-      if (audioRef.current && !isSynthesizerFallback) {
-        audioRef.current.pause();
-      }
-      musicBox.pause();
-      setIsPlaying(false);
+      pauseMusic();
     } else {
-      if (audioRef.current && !isSynthesizerFallback) {
-        audioRef.current.play().catch(() => {
-          musicBox.play();
-        });
-      } else {
-        musicBox.play();
-      }
-      setIsPlaying(true);
+      resumeMusic();
     }
   };
 
@@ -150,6 +161,8 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         duration,
         isSynthesizerFallback,
         startMusic,
+        pauseMusic,
+        resumeMusic,
         togglePlay,
         setVolume,
         toggleMute,

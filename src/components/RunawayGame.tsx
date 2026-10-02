@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
@@ -8,51 +8,66 @@ import { Heart, Sparkles, Smile, RotateCcw } from "lucide-react";
 import { playSoundEffect } from "@/utils/soundEffects";
 
 const noButtonTaunts = [
-  "Eits gak kena! 😜",
-  "Yakin gamau klik YES? 🥺",
-  "Tombol ini cuma pajangan lohh 😝",
-  "Tombol 'Nggak' lagi istirahat sayang 🐽",
+  "Eits, yakin gak sayang sama aku? 🥺",
+  "Tombol 'Nggak' lagi ngambek lho! 🐽",
+  "Masa babi selucu ini gak disayang sih? 😭💔",
+  "Tuh kan tombol YES makin GEDE BANGET! 😆",
+  "Udah segede gaban tombol YES-nya, masa gak diklik? 🥰",
+  "Tombol ini rusak, coba pencet tombol pink raksasa di atas! 😝",
   "Udah deh mengaku aja kamu sayang banget sama aku 🐷💖",
-  "Coba terus sampai lebaran monyet juga gabisa wkwk 😆",
-  "Tombol YES makin gede tuh, tinggal diklik aja! 🥰",
-  "Duh jarinya lincah banget, tapi tetep gabisa klik 'No' 😜",
+  "Gak ada opsi 'Nggak' di kamus kita wkwk 😆",
+  "Tombol YES udah makin menguasai layar nih! 💖",
+  "Duh jarinya lincah banget, tapi hatinya tetep cinta kan? 😜",
+];
+
+const getNoButtonLabel = (count: number) => {
+  if (count === 0) return "Nggak 😜";
+  if (count === 1) return "Yakin? 🥺";
+  if (count === 2) return "Masa sih? 😭";
+  if (count === 3) return "Bohong kan? 🐽";
+  if (count === 4) return "Pikir lagi deh! 💔";
+  if (count === 5) return "Gak boleh! 😝";
+  if (count === 6) return "Pencet YES dong! 🥺";
+  if (count === 7) return "Masih gamau juga? 😭";
+  return "Pencet YES aja! 💕";
+};
+
+const getYesButtonText = (count: number) => {
+  if (count <= 1) return "SAYANG BANGET DONG! 💗";
+  if (count <= 3) return "SAYANG BANGEEETTT DONG! 💖";
+  if (count <= 5) return "SAYANG BANGET POKOKNYA! 🐷💖";
+  return "IYA SAYANG BANGET BANGEEETTT! 🐷💖🎉";
+};
+
+// Safe playful offsets for NO button (stationed safely below the YES button)
+const safeOffsets = [
+  { x: 0, y: 0, rotate: 0 },
+  { x: 35, y: 10, rotate: 5 },
+  { x: -35, y: 15, rotate: -6 },
+  { x: 45, y: -5, rotate: 8 },
+  { x: -40, y: 8, rotate: -5 },
+  { x: 20, y: 18, rotate: 4 },
+  { x: -20, y: 12, rotate: -3 },
 ];
 
 export const RunawayGame: React.FC = () => {
   const [noCount, setNoCount] = useState<number>(0);
-  const [noPosition, setNoPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
-  const [hasMoved, setHasMoved] = useState<boolean>(false);
+  const [offsetIndex, setOffsetIndex] = useState<number>(0);
   const [isAccepted, setIsAccepted] = useState<boolean>(false);
   const [taunt, setTaunt] = useState<string>("");
-  const containerRef = useRef<HTMLDivElement>(null);
 
-  // Dodge "No" button smoothly inside container
-  const dodgeNoButton = () => {
+  // Handle clicking or tapping the NO button safely
+  const handleNoClick = (e: React.MouseEvent | React.TouchEvent) => {
+    e.stopPropagation();
     playSoundEffect("pop");
     const nextCount = noCount + 1;
     setNoCount(nextCount);
-    setHasMoved(true);
+
+    const nextIndex = (offsetIndex + 1) % safeOffsets.length;
+    setOffsetIndex(nextIndex);
 
     const randomTaunt = noButtonTaunts[(nextCount - 1) % noButtonTaunts.length];
     setTaunt(randomTaunt);
-
-    if (containerRef.current) {
-      const rect = containerRef.current.getBoundingClientRect();
-      const padding = 50;
-      const width = Math.max(160, rect.width - padding * 2);
-      const height = Math.max(120, rect.height - padding * 2);
-
-      // Random position relative to center
-      const randomX = (Math.random() - 0.5) * (width * 0.75);
-      const randomY = (Math.random() - 0.5) * (height * 0.65);
-
-      setNoPosition({ x: randomX, y: randomY });
-    } else {
-      setNoPosition({
-        x: (Math.random() - 0.5) * 180,
-        y: (Math.random() - 0.5) * 120,
-      });
-    }
   };
 
   const handleYesClick = () => {
@@ -86,14 +101,16 @@ export const RunawayGame: React.FC = () => {
   const handleReset = () => {
     playSoundEffect("pop");
     setNoCount(0);
-    setNoPosition({ x: 0, y: 0 });
-    setHasMoved(false);
+    setOffsetIndex(0);
     setIsAccepted(false);
     setTaunt("");
   };
 
-  // Grow "Yes" button progressively
-  const yesScale = Math.min(1.6, 1 + noCount * 0.08);
+  // Grow "Yes" button aggressively with every NO click!
+  // Grows up to 2.5x with generous dynamic spacing
+  const yesScale = 1 + Math.min(noCount, 10) * 0.15;
+  const noScale = Math.max(0.78, 1 - noCount * 0.03);
+  const currentOffset = safeOffsets[offsetIndex];
 
   return (
     <section id="love-quiz" className="relative py-20 px-4 sm:px-6 max-w-4xl mx-auto">
@@ -112,10 +129,7 @@ export const RunawayGame: React.FC = () => {
       </div>
 
       {/* Main Interactive Box */}
-      <div
-        ref={containerRef}
-        className="relative bg-white/95 backdrop-blur-md rounded-3xl p-6 sm:p-10 shadow-[0_20px_50px_rgba(244,114,182,0.22)] border-2 border-pink-200 text-center min-h-[380px] sm:min-h-[420px] flex flex-col items-center justify-center overflow-hidden"
-      >
+      <div className="relative bg-white/95 backdrop-blur-md rounded-3xl p-6 sm:p-10 shadow-[0_20px_50px_rgba(244,114,182,0.22)] border-2 border-pink-200 text-center min-h-[440px] sm:min-h-[500px] flex flex-col items-center justify-center transition-all duration-300">
         <AnimatePresence mode="wait">
           {!isAccepted ? (
             <motion.div
@@ -129,10 +143,10 @@ export const RunawayGame: React.FC = () => {
               <motion.div
                 animate={
                   noCount > 0
-                    ? { rotate: [-5, 5, -5] }
+                    ? { rotate: [-10, 10, -10] }
                     : { y: [0, -6, 0] }
                 }
-                transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                transition={{ duration: 1.1, repeat: Infinity, ease: "easeInOut" }}
                 className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden border-4 border-pink-300 shadow-lg mb-5 bg-pink-100"
               >
                 <Image
@@ -149,13 +163,13 @@ export const RunawayGame: React.FC = () => {
               </h3>
 
               {/* Dynamic Taunt Bubble */}
-              <div className="h-8 mb-6 flex items-center justify-center">
+              <div className="min-h-9 mb-6 flex items-center justify-center px-2">
                 {taunt ? (
                   <motion.div
                     key={taunt}
-                    initial={{ opacity: 0, y: 5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-pink-50 border border-pink-200 text-pink-700 text-xs sm:text-sm font-bold shadow-sm"
+                    initial={{ opacity: 0, y: 5, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-pink-50 border border-pink-200 text-pink-700 text-xs sm:text-sm font-bold shadow-sm"
                   >
                     <span>{taunt}</span>
                   </motion.div>
@@ -166,48 +180,69 @@ export const RunawayGame: React.FC = () => {
                 )}
               </div>
 
-              {/* Buttons Area */}
-              <div className="relative w-full max-w-md min-h-[90px] flex items-center justify-center gap-4 sm:gap-6">
-                {/* YES Button (Grows Bigger) */}
-                <motion.button
-                  whileHover={{ scale: yesScale * 1.05 }}
-                  whileTap={{ scale: yesScale * 0.95 }}
-                  animate={{ scale: yesScale }}
-                  transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                  onClick={handleYesClick}
-                  className="px-6 sm:px-8 py-3.5 sm:py-4 rounded-full bg-gradient-to-r from-pink-500 via-rose-500 to-pink-600 text-white font-black text-sm sm:text-base shadow-[0_10px_25px_rgba(244,63,94,0.35)] hover:shadow-[0_15px_30px_rgba(244,63,94,0.5)] transition-shadow duration-300 cursor-pointer flex items-center gap-2 z-10 whitespace-nowrap"
-                >
-                  <Heart className="w-5 h-5 fill-white" />
-                  <span>SAYANG BANGET DONG! 💗</span>
-                </motion.button>
-
-                {/* Runaway NO Button */}
-                <motion.button
-                  animate={
-                    hasMoved
-                      ? {
-                          x: noPosition.x,
-                          y: noPosition.y,
-                        }
-                      : { x: 0, y: 0 }
-                  }
-                  transition={{ type: "spring", stiffness: 450, damping: 22 }}
-                  onMouseEnter={dodgeNoButton}
-                  onTouchStart={dodgeNoButton}
-                  onClick={dodgeNoButton}
-                  className="px-5 py-3 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 font-bold text-xs sm:text-sm shadow border border-gray-200 cursor-pointer whitespace-nowrap z-20 select-none"
+              {/* Buttons Area with dynamic expansion */}
+              <div className="w-full max-w-lg flex flex-col items-center justify-center py-2">
+                {/* YES Button Container (adds vertical and horizontal clearance as it grows giant) */}
+                <div
+                  className="transition-all duration-300 flex items-center justify-center"
                   style={{
-                    position: hasMoved ? "absolute" : "relative",
+                    paddingTop: `${Math.min(noCount * 14, 90)}px`,
+                    paddingBottom: `${Math.min(noCount * 14, 90)}px`,
                   }}
                 >
-                  Nggak 😜
-                </motion.button>
+                  <motion.button
+                    animate={{
+                      scale: yesScale,
+                    }}
+                    transition={{ type: "spring", stiffness: 320, damping: 18 }}
+                    whileHover={{ scale: yesScale * 1.05 }}
+                    whileTap={{ scale: yesScale * 0.95 }}
+                    onClick={handleYesClick}
+                    className="px-6 sm:px-9 py-3.5 sm:py-4 rounded-full bg-gradient-to-r from-pink-500 via-rose-500 to-pink-600 text-white font-black text-xs sm:text-base cursor-pointer flex items-center gap-2 z-10 whitespace-nowrap active:scale-95 transition-shadow duration-300"
+                    style={{
+                      boxShadow: `0 ${12 + noCount * 4}px ${28 + noCount * 6}px rgba(244, 63, 94, ${Math.min(
+                        0.4 + noCount * 0.05,
+                        0.85
+                      )})`,
+                    }}
+                  >
+                    <Heart
+                      className={`fill-white shrink-0 ${
+                        noCount > 1 ? "animate-bounce" : ""
+                      }`}
+                      style={{
+                        width: `${18 + Math.min(noCount * 1.5, 12)}px`,
+                        height: `${18 + Math.min(noCount * 1.5, 12)}px`,
+                      }}
+                    />
+                    <span>{getYesButtonText(noCount)}</span>
+                  </motion.button>
+                </div>
+
+                {/* NO Button Row (stays comfortably below the giant YES so it never overlaps or gets misclicked) */}
+                <div className="relative w-full flex items-center justify-center min-h-[56px] mt-2">
+                  <motion.button
+                    animate={{
+                      x: currentOffset.x,
+                      y: currentOffset.y,
+                      rotate: currentOffset.rotate,
+                      scale: noScale,
+                    }}
+                    transition={{ type: "spring", stiffness: 350, damping: 22 }}
+                    whileHover={{ scale: noScale * 1.08 }}
+                    whileTap={{ scale: noScale * 0.92 }}
+                    onClick={handleNoClick}
+                    className="px-4 sm:px-5 py-2 sm:py-2.5 rounded-full bg-gray-100 hover:bg-gray-200 active:bg-gray-300 text-gray-600 font-bold text-xs sm:text-sm shadow-md border border-gray-300/80 cursor-pointer whitespace-nowrap z-20 select-none transition-colors"
+                  >
+                    {getNoButtonLabel(noCount)}
+                  </motion.button>
+                </div>
               </div>
 
-              {/* Subtle hint */}
+              {/* Counter note */}
               {noCount > 0 && (
-                <p className="mt-6 text-[11px] text-pink-400 font-medium">
-                  Usaha klik tombol &lsquo;Nggak&rsquo;: {noCount}x (tetep gabisa wkwk)
+                <p className="mt-4 text-[11px] sm:text-xs text-pink-500 font-semibold animate-pulse">
+                  Usaha pencet tombol &lsquo;Nggak&rsquo;: {noCount}x (Tuh tombol YES makin raksasa! Tinggal pencet aja 🥰)
                 </p>
               )}
             </motion.div>
@@ -244,7 +279,7 @@ export const RunawayGame: React.FC = () => {
 
               <button
                 onClick={handleReset}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-pink-50 hover:bg-pink-100 text-pink-700 font-bold text-xs sm:text-sm border border-pink-200 transition-colors cursor-pointer"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-pink-50 hover:bg-pink-100 text-pink-700 font-bold text-xs sm:text-sm border border-pink-200 transition-colors cursor-pointer active:scale-95"
               >
                 <RotateCcw className="w-4 h-4" />
                 <span>Main Ulang 😜</span>
